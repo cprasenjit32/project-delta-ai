@@ -1,16 +1,13 @@
 import os
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Set the OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Validate the CR description using GPT-4
 def validate_cr_description(description):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You're a Change Management expert."},
@@ -19,9 +16,8 @@ def validate_cr_description(description):
     )
     return {"validation": response.choices[0].message.content.strip()}
 
-# Assess risk of a CR using GPT-4
 def assess_risk(description):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You're a risk assessment engine."},
@@ -34,9 +30,8 @@ def assess_risk(description):
         return score.strip(), reason.strip()
     return "Unknown", content
 
-# Generate suggestions for CR improvements using GPT-4
 def generate_suggestions(description):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You're a Change Review expert."},
