@@ -1,61 +1,84 @@
 import os
-import openai
+import json
+from openai import OpenAI
+from dotenv import load_dotenv
 
-# Set API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def validate_cr_description(description: str) -> str:
-    prompt = f"""You are an IT Change Advisory Assistant.
-Evaluate the following change request description and determine if it's clear, complete, and valid.
+def safe_parse(response_text):
+    """Safely parse model output to JSON."""
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON from model", "raw": response_text}
 
-Description:
-{description}
+def validate_cr_description(description):
+    """Validate a change request description for completeness."""
+    prompt = f"""
+    You are a Change Management validator.
+    Analyze this change request description and return ONLY a JSON response in this format:
+    {{
+        "summary": "Short summary of what the CR describes.",
+        "missing_fields": ["List any missing details"],
+        "issues": ["List any unclear points"],
+        "quality": "Good / Average / Poor"
+    }}
 
-Respond with 'VALID' if it is complete and clearly describes the change. Otherwise, respond with 'INVALID' and mention why."""
-    
-    response = openai.ChatCompletion.create(
+    Description:
+    {description}
+    """
+    response = client.chat.completions.create(
         model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are an expert Change Management assistant."},
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
     )
-    
-    return response['choices'][0]['message']['content'].strip()
+    content = response.choices[0].message.content.strip()
+    return safe_parse(content)
 
-def assess_risk(description: str) -> str:
-    prompt = f"""Based on the change description below, assess the risk level as Low, Medium, or High, and justify your answer.
+def assess_risk(description, environment="PROD"):
+    """Assess the risk level of the CR."""
+    prompt = f"""
+    You are a Change Risk Assessor.
+    Read the CR description and environment and return ONLY a JSON object like:
+    {{
+        "score": "Low / Medium / High",
+        "justification": "Explain the reason"
+    }}
 
-Description:
-{description}
+    Description:
+    {description}
 
-Respond in the format:
-Risk Level: <Low/Medium/High>
-Reason: <short reason>"""
-
-    response = openai.ChatCompletion.create(
+    Environment: {environment}
+    """
+    response = client.chat.completions.create(
         model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a Change Risk Analyst."},
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
     )
+    content = response.choices[0].message.content.strip()
+    return safe_parse(content)
 
-    return response['choices'][0]['message']['content'].strip()
+def generate_suggestions(description):
+    """Suggest improvements for a CR description."""
+    prompt = f"""
+    You are a Change Management Reviewer.
+    Suggest improvements for this CR. Return ONLY a JSON object:
+    {{
+        "suggestions": [
+            "Suggestion 1",
+            "Suggestion 2",
+            "Suggestion 3"
+        ]
+    }}
 
-def generate_suggestions(description: str) -> str:
-    prompt = f"""The following change request description was found invalid or incomplete:
-
-{description}
-
-Provide 3 helpful suggestions to improve it for validation."""
-
-    response = openai.ChatCompletion.create(
+    Description:
+    {description}
+    """
+    response = client.chat.completions.create(
         model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant improving change request descriptions."},
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4
     )
-
-    return response['choices'][0]['message']['content'].strip()
+    content = response.choices[0].message.content.strip()
+    return safe_parse(content)
