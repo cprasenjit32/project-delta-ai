@@ -1,6 +1,6 @@
 import streamlit as st
-from llm_agent import validate_cr_description, assess_risk, generate_suggestions
-from db_handler import save_to_db
+from app.llm_agent import validate_cr_description, assess_risk, generate_suggestions
+from app.db_handler import save_to_db
 
 
 st.set_page_config(page_title="Project Delta - CR Validator", layout="wide")
