@@ -3,8 +3,12 @@ import json
 from openai import OpenAI
 from dotenv import load_dotenv
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def get_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY is missing")
+    return OpenAI(api_key=api_key)
 
 def safe_parse(response_text):
     """Safely parse model output to JSON."""
