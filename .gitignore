@@ -17,3 +17,5 @@ venv/
 # Logs and local files
 *.log
 
+.streamlit/secrets.toml
+.env
