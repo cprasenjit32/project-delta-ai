@@ -18,4 +18,4 @@ venv/
 *.log
 
 .streamlit/secrets.toml
-.env
+
