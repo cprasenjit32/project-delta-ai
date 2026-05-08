@@ -1,88 +1,142 @@
 import os
-import json
 from openai import OpenAI
-from dotenv import load_dotenv
 
-
-def get_client():
+def get_openai_client():
     api_key = os.getenv("OPENAI_API_KEY")
+
+    try:
+        import streamlit as st
+        api_key = st.secrets.get("OPENAI_API_KEY", api_key)
+    except Exception:
+        pass
+
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is missing")
+        return None
+
     return OpenAI(api_key=api_key)
 
-def safe_parse(response_text):
-    """Safely parse model output to JSON."""
+
+def fallback_analysis(change_text, environment, rollback_plan):
+    text = f"{change_text} {environment} {rollback_plan}".lower()
+
+    issues = []
+    risk_score = 0
+
+    if not change_text or len(change_text.strip()) < 30:
+        issues.append("Change description is too short or unclear.")
+        risk_score += 2
+
+    if environment.upper() == "PROD":
+        risk_score += 3
+
+    if not rollback_plan or len(rollback_plan.strip()) < 20:
+        issues.append("Rollback plan is missing or weak.")
+        risk_score += 3
+
+    risky_words = ["database", "schema", "payment", "auth", "login", "prod", "migration", "firewall"]
+    for word in risky_words:
+        if word in text:
+            risk_score += 1
+
+    if risk_score >= 6:
+        risk = "HIGH"
+        cab = "CAB approval required"
+    elif risk_score >= 3:
+        risk = "MEDIUM"
+        cab = "Team lead / release manager review required"
+    else:
+        risk = "LOW"
+        cab = "Eligible for standard approval"
+
+    if not issues:
+        issues.append("No major validation issues found.")
+
+    suggestions = [
+        "Add clear deployment steps.",
+        "Mention impacted application/components.",
+        "Include pre-validation and post-validation checks.",
+        "Provide a tested rollback plan.",
+        "Confirm business approval and release window."
+    ]
+
+    return {
+        "validation": "\n".join(f"- {i}" for i in issues),
+        "risk": risk,
+        "cab": cab,
+        "suggestions": "\n".join(f"- {s}" for s in suggestions)
+    }
+
+
+def analyze_change_request(change_text, environment, rollback_plan):
+    client = get_openai_client()
+
+    if client is None:
+        return fallback_analysis(change_text, environment, rollback_plan)
+
+    prompt = f"""
+You are an expert IT Change and Release Management AI Agent.
+
+Analyze this deployment change request.
+
+Environment: {environment}
+
+Change Request:
+{change_text}
+
+Rollback Plan:
+{rollback_plan}
+
+Return response in this exact format:
+
+VALIDATION:
+- Point 1
+- Point 2
+
+RISK:
+LOW / MEDIUM / HIGH
+
+CAB_DECISION:
+Decision here
+
+SUGGESTIONS:
+- Suggestion 1
+- Suggestion 2
+"""
+
     try:
-        return json.loads(response_text)
-    except json.JSONDecodeError:
-        return {"error": "Invalid JSON from model", "raw": response_text}
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a Change and Release Management AI Agent."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
 
-def validate_cr_description(description):
-    """Validate a change request description for completeness."""
-    prompt = f"""
-    You are a Change Management validator.
-    Analyze this change request description and return ONLY a JSON response in this format:
-    {{
-        "summary": "Short summary of what the CR describes.",
-        "missing_fields": ["List any missing details"],
-        "issues": ["List any unclear points"],
-        "quality": "Good / Average / Poor"
-    }}
+        output = response.choices[0].message.content
 
-    Description:
-    {description}
-    """
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
-    content = response.choices[0].message.content.strip()
-    return safe_parse(content)
+        risk = "MEDIUM"
+        if "RISK:" in output:
+            if "HIGH" in output.upper():
+                risk = "HIGH"
+            elif "LOW" in output.upper():
+                risk = "LOW"
 
-def assess_risk(description, environment="PROD"):
-    """Assess the risk level of the CR."""
-    prompt = f"""
-    You are a Change Risk Assessor.
-    Read the CR description and environment and return ONLY a JSON object like:
-    {{
-        "score": "Low / Medium / High",
-        "justification": "Explain the reason"
-    }}
+        if risk == "HIGH":
+            cab = "CAB approval required"
+        elif risk == "MEDIUM":
+            cab = "Release Manager / Team review required"
+        else:
+            cab = "Eligible for standard approval"
 
-    Description:
-    {description}
+        return {
+            "validation": output,
+            "risk": risk,
+            "cab": cab,
+            "suggestions": output
+        }
 
-    Environment: {environment}
-    """
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
-    )
-    content = response.choices[0].message.content.strip()
-    return safe_parse(content)
-
-def generate_suggestions(description):
-    """Suggest improvements for a CR description."""
-    prompt = f"""
-    You are a Change Management Reviewer.
-    Suggest improvements for this CR. Return ONLY a JSON object:
-    {{
-        "suggestions": [
-            "Suggestion 1",
-            "Suggestion 2",
-            "Suggestion 3"
-        ]
-    }}
-
-    Description:
-    {description}
-    """
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.4
-    )
-    content = response.choices[0].message.content.strip()
-    return safe_parse(content)
+    except Exception as e:
+        result = fallback_analysis(change_text, environment, rollback_plan)
+        result["validation"] += f"\n\nLLM fallback used due to error: {str(e)}"
+        return result
