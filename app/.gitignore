@@ -1,5 +1,6 @@
 # Python virtual environment
 venv/
+.streamlit/secrets.toml
 
 # macOS system files
 .DS_Store
