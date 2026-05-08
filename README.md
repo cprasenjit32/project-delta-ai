@@ -110,13 +110,53 @@ SQLite Database / Future ITSM Integration
 git clone https://github.com/cprasenjit32/project-delta-ai.git
 ```
 
+## Navigate to Project
+
+```bash
+cd project-delta-ai
+```
+
+## Create Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+## Activate Virtual Environment
+
+### macOS/Linux
+
+```bash
+source venv/bin/activate
+```
+
+### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+---
+
 ## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Run Application
+---
+
+# 🔐 Environment Variables
+
+Create a `.env` file or configure Streamlit secrets with:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+---
+
+# ▶️ Run Application
 
 ```bash
 streamlit run app/ui.py
@@ -138,6 +178,19 @@ streamlit run app/ui.py
 
 ---
 
+# 🧩 Example Use Case
+
+### Input
+Deploy payment API changes to PROD environment for authentication enhancement. Includes database schema updates and API gateway routing changes.
+
+### Expected Output
+- Risk Level: HIGH
+- CAB Approval: Required
+- Governance Suggestions: Generated
+- Rollback Validation: Passed
+
+---
+
 # 🔮 Future Enhancements
 
 - ServiceNow integration
@@ -149,10 +202,11 @@ streamlit run app/ui.py
 - MCP integrations
 - Multi-agent orchestration
 - AMD GPU-powered local inference
+- vLLM model serving
 
 ---
 
-# 🧩 AMD AI Alignment
+# 🧠 AMD AI Alignment
 
 Project Delta demonstrates how enterprise AI agents can automate governance workflows and deployment risk analysis.
 
@@ -160,10 +214,11 @@ Future scalability includes:
 - Local LLM inference
 - vLLM serving
 - AMD Instinct GPU acceleration
+- ROCm optimization
 - Secure enterprise on-prem deployments
 
 ---
 
 # 👨‍💻 Author
 
-Built by Prasenjit for the AMD AI Hackathon 2026.
+Built by Prasenjit Chow
