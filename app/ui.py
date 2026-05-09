@@ -174,3 +174,6 @@ CAB Decision Layer
 Suggestions Agent
  ↓
 SQLite Database / Future ITSM Integration
+
+```python
+""")
