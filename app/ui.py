@@ -175,3 +175,43 @@ Suggestions Agent
  ↓
 SQLite Database / Future ITSM Integration
 """)
+
+
+
+elif page == "About":
+    st.title("ℹ️ About Project Delta")
+
+    st.markdown("""
+Project Delta is an AI-powered Change and Release Management assistant built for the AMD AI Hackathon.
+
+It helps enterprise IT teams automate deployment governance workflows by validating change requests, assessing operational risk, recommending CAB approval decisions, and generating release readiness suggestions.
+
+### Key Capabilities
+
+- AI-based change request validation
+- Risk classification: LOW, MEDIUM, HIGH
+- CAB approval recommendation
+- Rollback plan validation
+- Deployment governance suggestions
+- SQLite-based request tracking
+
+### Technology Stack
+
+- Python
+- Streamlit
+- OpenAI API
+- SQLite
+- GitHub
+- Streamlit Cloud
+
+### Future Roadmap
+
+- ServiceNow integration
+- Freshdesk / Jira integration
+- Azure DevOps pipeline integration
+- Multi-agent orchestration
+- RCA automation
+- AMD GPU-powered local inference using vLLM
+
+Project Delta demonstrates how AI agents can modernize enterprise release governance and reduce manual operational overhead.
+""")
